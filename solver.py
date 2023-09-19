@@ -47,6 +47,17 @@ def remove_vertical_occurences(sudoku_grid, val_to_remove, column, sudoku_len):
             sudoku_grid[i][column].remove(val_to_remove)
     return sudoku_grid
 
+def remove_mini_grid_occurences(sudoku_grid, val_to_remove, row, column):
+    horizontal_start = SUDOKU_SIZE*int(row/SUDOKU_SIZE)
+    horizontal_end = horizontal_start + SUDOKU_SIZE
+    vertical_start = SUDOKU_SIZE*int(column/SUDOKU_SIZE)
+    vertical_end = vertical_start + SUDOKU_SIZE
+    for i in range(horizontal_start, horizontal_end):
+        for j in range(vertical_start, vertical_end):
+            if isinstance(sudoku_grid[i][j], list) and val_to_remove in sudoku_grid[i][j]:
+                sudoku_grid[i][j].remove(val_to_remove)
+    return sudoku_grid
+
 def solve_horizontal_single_occurences(sudoku_grid:list, row:int, sudoku_len:int):
     for check_val in range(1, SUDOKU_SIZE**2+1):
         single_occurence_column = None
@@ -60,6 +71,7 @@ def solve_horizontal_single_occurences(sudoku_grid:list, row:int, sudoku_len:int
         if occurence_count == 1:
             #as we found a single occurence in horizontal remove occurences in vertical
             sudoku_grid = remove_vertical_occurences(sudoku_grid, check_val, single_occurence_column, sudoku_len)
+            sudoku_grid = remove_mini_grid_occurences(sudoku_grid, check_val, row, single_occurence_column)
             # for j in range(0, sudoku_len):
             #     if isinstance(sudoku_grid[j][single_occurence_column],list) and check_val in sudoku_grid[j][single_occurence_column]:
             #         sudoku_grid[j][single_occurence_column].remove(check_val)
@@ -79,11 +91,38 @@ def solve_vertical_single_occurences(sudoku_grid, column:int, sudoku_len:int):
                 single_occurence_row = i
         if occurence_count == 1:
             sudoku_grid = remove_horizontal_occurences(sudoku_grid, check_val, single_occurence_row, sudoku_len)
+            sudoku_grid = remove_mini_grid_occurences(sudoku_grid, check_val, single_occurence_row, column)
             # for j in range(0, sudoku_len):
             #     if isinstance(sudoku_grid[single_occurence_row][j],list) and check_val in sudoku_grid[single_occurence_row][j]:
             #         sudoku_grid[single_occurence_row][j].remove(check_val)
             print(f"Medium vertical find at {single_occurence_row+1}, {column+1} i.e {check_val}.")
             sudoku_grid[single_occurence_row][column] = check_val
+    return sudoku_grid
+
+def solve_mini_grid_single_occurence(sudoku_grid, row, column, sudoku_len):
+    horizontal_start = SUDOKU_SIZE*int(row/SUDOKU_SIZE)
+    horizontal_end = horizontal_start + SUDOKU_SIZE
+    vertical_start = SUDOKU_SIZE*int(column/SUDOKU_SIZE)
+    vertical_end = vertical_start + SUDOKU_SIZE
+    for check_val in range(1, SUDOKU_SIZE**2+1):
+        single_occurence_row = None
+        single_occurence_column = None
+        occurence_count = 0
+        for i in range(horizontal_start, horizontal_end):
+            for j in range(vertical_start, vertical_end):
+                if isinstance(sudoku_grid[i][j],list) and check_val in sudoku_grid[i][j]:
+                    occurence_count +=1
+                    if occurence_count >1:
+                        break
+                    single_occurence_row = i
+                    single_occurence_column = j
+            if occurence_count >1:
+                break
+        if occurence_count == 1:
+            sudoku_grid = remove_horizontal_occurences(sudoku_grid, check_val, single_occurence_row, sudoku_len)
+            sudoku_grid = remove_vertical_occurences(sudoku_grid, check_val, single_occurence_column, sudoku_len)
+            print(f"Medium grid find at {single_occurence_row+1}, {single_occurence_column+1} i.e {check_val}.")
+            sudoku_grid[single_occurence_row][single_occurence_column] = check_val
     return sudoku_grid
 
 def solve_sudoku(sudoku_grid):
@@ -107,11 +146,15 @@ def solve_sudoku(sudoku_grid):
                 sudoku_grid[i][j] = sudoku_grid[i][j][0]
                 sudoku_grid = remove_horizontal_occurences(sudoku_grid, sudoku_grid[i][j], i, sudoku_len)
                 sudoku_grid = remove_vertical_occurences(sudoku_grid, sudoku_grid[i][j], j, sudoku_len)
-                #remove duplicates on mini grid.
+                sudoku_grid = remove_mini_grid_occurences(sudoku_grid, sudoku_grid[i][j], i, j)
+        
     # mediocer level fill info, based on single time occurence in vertical or horizontal or mini grid.
     for i in range(0, sudoku_len):
         sudoku_grid = solve_horizontal_single_occurences(sudoku_grid, i, sudoku_len)
         sudoku_grid = solve_vertical_single_occurences(sudoku_grid, i, sudoku_len)
+        if i%3==0:
+            for j in range(0, sudoku_len, 3):
+                sudoku_grid = solve_mini_grid_single_occurence(sudoku_grid, i, j, sudoku_len)
         # remove mini grid single occurence
     return sudoku_grid
 
